@@ -9,7 +9,7 @@ TEENSY_CORE_SPEED = 48000000
 
 # Some libraries will require this to be defined
 # If you define this, you will break the default main.cpp
-#ARDUINO = 10600
+ARDUINO = 10600
 
 # configurable options
 OPTIONS = -DUSB_SERIAL -DLAYOUT_US_ENGLISH
@@ -40,6 +40,9 @@ COREPATH = teensy3
 
 # path location for Arduino libraries
 LIBRARYPATH = libraries
+LIBRARYINCLUDES := $(wildcard $(LIBRARYPATH)/*/src)
+LIBRARYINCLUDE=$(foreach d, $(LIBRARYINCLUDES), -I$d)
+#$(info $$LIBRARYINCLUDE is [${LIBRARYINCLUDE}])
 
 # path location for the arm-none-eabi compiler
 COMPILERPATH = $(TOOLSPATH)/arm/bin
@@ -49,7 +52,7 @@ COMPILERPATH = $(TOOLSPATH)/arm/bin
 #************************************************************************
 
 # CPPFLAGS = compiler options for C and C++
-CPPFLAGS = -Wall -g -Os -mthumb -ffunction-sections -fdata-sections -nostdlib -MMD $(OPTIONS) -DTEENSYDUINO=124 -DF_CPU=$(TEENSY_CORE_SPEED) -Isrc -I$(COREPATH)
+CPPFLAGS = -Wall -g -Os -mthumb -ffunction-sections -fdata-sections -nostdlib -MMD $(OPTIONS) -DTEENSYDUINO=124 -DF_CPU=$(TEENSY_CORE_SPEED) -Isrc -I$(COREPATH) $(LIBRARYINCLUDE)
 
 # compiler options for C++ only
 CXXFLAGS = -std=gnu++0x -felide-constructors -fno-exceptions -fno-rtti
@@ -61,7 +64,7 @@ CFLAGS =
 LDFLAGS = -Os -Wl,--gc-sections -mthumb
 
 # additional libraries to link
-LIBS = -lm
+LIBS = -lstdc++ -lm -lgcc -lc -lc -lnosys
 
 # compiler options specific to teensy version
 ifeq ($(TEENSY), 30)
@@ -105,8 +108,8 @@ OBJCOPY = $(abspath $(COMPILERPATH))/arm-none-eabi-objcopy
 SIZE = $(abspath $(COMPILERPATH))/arm-none-eabi-size
 
 # automatically create lists of the sources and objects
-LC_FILES := $(wildcard $(LIBRARYPATH)/*/*.c)
-LCPP_FILES := $(wildcard $(LIBRARYPATH)/*/*.cpp)
+LC_FILES := $(shell find $(LIBRARYPATH) -name "*.c" | grep -v examples)
+LCPP_FILES := $(shell find $(LIBRARYPATH) -name "*.cpp" | grep -v examples)
 TC_FILES := $(wildcard $(COREPATH)/*.c)
 TCPP_FILES := $(wildcard $(COREPATH)/*.cpp)
 C_FILES := $(wildcard src/*.c)
@@ -139,6 +142,7 @@ $(BUILDDIR)/%.o: %.c
 	@$(CC) $(CPPFLAGS) $(CFLAGS) $(L_INC) -o "$@" -c "$<"
 
 $(BUILDDIR)/%.o: %.cpp
+	$(CXX) --version
 	@echo -e "[CXX]\t$<"
 	@mkdir -p "$(dir $@)"
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(L_INC) -o "$@" -c "$<"
